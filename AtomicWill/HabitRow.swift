@@ -18,29 +18,28 @@ struct HabitRow: View {
 
     var body: some View {
         HStack {
-            Text(habit.emojiIcon)
+            // Option A: Continue using extracted emojiIcon
+            // Text(habit.emojiIcon)
+            //    .font(.title)
+
+            // Option B: If name starts with emoji, just use name for leading visual.
+            // This might look better if the emoji is integral to the name.
+            // You could also combine: show emojiIcon if it's different, else part of name.
+            // For now, let's stick to using the emojiIcon field as intended.
+            Text(habit.emojiIcon) // This will now be the extracted first emoji or default
                 .font(.title)
+                .frame(width: 30, alignment: .center) // Give it some consistent space
+
             VStack(alignment: .leading) {
-                Text(habit.name)
+                Text(habit.name) // The full name, which might also start with an emoji
                     .font(.headline)
                 Text("Frequency: \(habit.targetFrequency.rawValue)")
                     .font(.caption)
                     .foregroundColor(.gray)
             }
-            Spacer()
-            Button {
-                withAnimation {
-                    habit.toggleCompletion(for: date, modelContext: modelContext)
-                    // try? modelContext.save() // Optional: if autosave needs a nudge
-                }
-            } label: {
-                Image(systemName: isCompletedForDate ? "checkmark.circle.fill" : "circle")
-                    .font(.title2)
-                    .foregroundColor(isCompletedForDate ? Color.green : Color.gray) // Use Color.green etc.
-            }
-            .buttonStyle(.plain)
+            // ... rest of HStack
         }
-        .padding(.vertical, 4)
+        // ...
     }
 }
 

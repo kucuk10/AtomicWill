@@ -1,25 +1,21 @@
+// AllHabitsView.swift
+
 import SwiftUI
 import SwiftData
 
-struct ContentView: View {
+struct AllHabitsView: View {
     @Environment(\.modelContext) private var modelContext
     @State private var showingAddHabitSheet = false
-    @State private var selectedDate: Date = Date()
+    // No longer need selectedDate state here for the view itself,
+    // but we need a constant for "today" to pass to HabitRow.
+    private let today: Date = Calendar.current.startOfDay(for: Date()) // Ensures we always use the start of today
 
     @Query(sort: [SortDescriptor(\Habit.creationDate, order: .reverse)]) private var habits: [Habit]
 
-    // The problematic @Environment(\.editMode) line has been removed.
-    // On iOS, EditButton() will still correctly interact with the List's .onDelete.
-
     var body: some View {
+        // Each tab should manage its own NavigationStack if it needs a title bar and toolbar.
         NavigationStack {
-            VStack {
-                DatePicker("Select Date", selection: $selectedDate, displayedComponents: .date)
-                    .padding(.horizontal)
-                    #if os(macOS)
-                    .frame(maxWidth: 250)
-                    #endif
-
+            VStack { // Removed the DatePicker from here
                 List {
                     if habits.isEmpty {
                         ContentUnavailableView {
@@ -29,7 +25,8 @@ struct ContentView: View {
                         }
                     } else {
                         ForEach(habits) { habit in
-                            HabitRow(habit: habit, date: selectedDate)
+                            // Pass 'today' to HabitRow to check completion for the current day
+                            HabitRow(habit: habit, date: today)
                                 #if os(macOS)
                                 .contextMenu { // Context menu for macOS deletion
                                     Button("Delete", role: .destructive) {
@@ -38,21 +35,20 @@ struct ContentView: View {
                                 }
                                 #endif
                         }
-                        .onDelete(perform: deleteHabits) // Works with iOS EditButton & swipe.
-                                                        // On macOS, may work with selection + Delete key.
+                        .onDelete(perform: deleteHabits)
                     }
                 }
                 #if os(iOS)
                 .listStyle(.insetGrouped)
                 #else
-                .listStyle(.plain) // Or .bordered on macOS
+                .listStyle(.plain)
                 #endif
             }
-            .navigationTitle("Habits for \(selectedDate, style: .date)")
+            .navigationTitle("Today's Habits") // Changed title to be more static
             .toolbar {
                 #if os(iOS)
                 ToolbarItem(placement: .navigationBarLeading) {
-                    EditButton() // This sets the \.editMode in the environment for the List on iOS
+                    EditButton()
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
@@ -62,8 +58,8 @@ struct ContentView: View {
                     }
                 }
                 #else // macOS
-                ToolbarItemGroup(placement: .automatic) { // macOS toolbar
-                    Spacer() // Optional: to push the button to the right
+                ToolbarItemGroup(placement: .automatic) {
+                    Spacer()
                     Button {
                         showingAddHabitSheet = true
                     } label: {
@@ -85,20 +81,17 @@ struct ContentView: View {
     private func deleteHabits(offsets: IndexSet) {
         withAnimation {
             offsets.map { habits[$0] }.forEach(modelContext.delete)
-            // try? modelContext.save()
         }
     }
 
-    // Helper for macOS context menu deletion
     private func deleteHabit(_ habit: Habit) {
         withAnimation {
             modelContext.delete(habit)
-            // try? modelContext.save()
         }
     }
 }
 
 #Preview {
-    ContentView()
+    AllHabitsView()
         .modelContainer(for: [Habit.self, HabitLog.self], inMemory: true)
 }
