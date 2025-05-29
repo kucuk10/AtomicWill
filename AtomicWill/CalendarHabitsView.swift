@@ -1,9 +1,3 @@
-//
-//  CalendarHabitsView.swift
-//  AtomicWill
-//
-//  Created by Caner Kucuk on 5/23/25.
-//
 // CalendarHabitsView.swift
 import SwiftUI
 import SwiftData
@@ -51,12 +45,22 @@ struct CalendarHabitsView: View {
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
+            .toolbar { // <<<< MODIFIED TOOLBAR
+                #if os(iOS)
+                ToolbarItem(placement: .navigationBarTrailing) { // iOS specific
                     Button("Today") {
                         selectedDate = Calendar.current.startOfDay(for: Date())
                     }
                 }
+                #else // macOS
+                ToolbarItemGroup(placement: .automatic) { // macOS friendly placement
+                    Spacer() // Push to the right if desired, or remove for default macOS positioning
+                    Button("Today") {
+                        selectedDate = Calendar.current.startOfDay(for: Date())
+                    }
+                    .help("Go to Today")
+                }
+                #endif
             }
         }
     }
@@ -97,7 +101,12 @@ struct CalendarHabitsView: View {
             LazyVGrid(columns: columns, spacing: 0) {
                 ForEach(daysInGrid) { day in
                     dayCell(for: day)
-                        .border(Color(uiColor: .separator), width: 0.5)
+                        // MODIFIED BORDER COLOR
+                        #if os(iOS)
+                        .border(Color(uiColor: .separator), width: 0.5) // iOS specific
+                        #else
+                        .border(Color.gray.opacity(0.3), width: 0.5) // macOS friendly separator
+                        #endif
                         .onTapGesture {
                             if day.isCurrentMonth {
                                 print("Tapped Month Day: \(day.date)")
@@ -214,12 +223,11 @@ struct CalendarHabitsView: View {
     }
 
     private func generateDaysInMonth(for referenceDate: Date) -> [CalendarDay] {
-        // CORRECTED GUARD for monthInterval and firstOfMonth
         guard let monthInterval = calendar.dateInterval(of: .month, for: referenceDate) else {
             print("Error: Could not get monthInterval for \(referenceDate)")
             return []
         }
-        let firstOfMonth = monthInterval.start // Now non-optional
+        let firstOfMonth = monthInterval.start
 
         var days: [CalendarDay] = []
         let weekdayOfFirst = calendar.component(.weekday, from: firstOfMonth)
