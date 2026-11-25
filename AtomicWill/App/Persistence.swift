@@ -21,6 +21,9 @@ enum Persistence {
 
     static let schema = Schema([Habit.self, HabitCompletion.self])
 
+    /// The app's store, shared by the UI and App Intents so changes from Shortcuts show up right away.
+    static let shared = makeContainer()
+
     static func makeContainer(inMemory: Bool = false) -> ModelContainer {
         // Choose `.none` explicitly. The default, `.automatic`, would start syncing
         // as soon as an iCloud entitlement shows up.

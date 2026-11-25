@@ -25,10 +25,16 @@ struct HabitRowView: View {
             HabitIcon(habit: habit)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(habit.name)
-                    .font(.body.weight(.medium))
-                    .strikethrough(oneTimeState == .notCompleted)
+                HStack(spacing: 6) {
+                    Text(habit.name)
+                        .font(.body.weight(.medium))
+                        .strikethrough(oneTimeState == .notCompleted)
+                    if habit.kind == .repeating {
+                        statusBadge
+                    }
+                }
                 detail
+                    .lineLimit(1)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
@@ -73,10 +79,7 @@ struct HabitRowView: View {
             }
 
         case .repeating:
-            HStack(spacing: 6) {
-                Text(goalDescription)
-                statusBadge
-            }
+            Text(goalDescription)
         }
     }
 
@@ -114,27 +117,53 @@ struct HabitRowView: View {
 
     // MARK: Controls
 
+    /// Progress ring with − and + buttons for logging completions on this day.
     private var logButton: some View {
-        Button {
-            withAnimation { habit.logCompletion(on: day, calendar: calendar, in: modelContext) }
-        } label: {
+        HStack(spacing: 10) {
+            if canUndoLog {
+                Button("Remove Completion", systemImage: "minus") { undoLog() }
+                    .labelStyle(.iconOnly)
+                    .font(.footnote.weight(.bold))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 30, height: 30)
+                    .background(.fill.tertiary, in: .circle)
+                    .contentShape(.circle)
+                    .buttonStyle(.plain)
+                    .help("Remove a completion")
+                    .transition(.scale.combined(with: .opacity))
+            }
+
             ZStack {
                 ProgressRing(
                     progress: min(progress.completion, 2),
                     color: progress.status == .overLimit ? .red : habit.habitColor.color,
-                    lineWidth: 5
+                    lineWidth: 4
                 )
                 Text(progress.count, format: .number)
-                    .font(.callout.weight(.bold).monospacedDigit())
+                    .font(.footnote.weight(.bold).monospacedDigit())
                     .contentTransition(.numericText(value: Double(progress.count)))
             }
-            .frame(width: 44, height: 44)
+            .frame(width: 36, height: 36)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(goalDescription)
+
+            Button("Log \(habit.name)", systemImage: "plus") {
+                withAnimation { habit.logCompletion(on: day, calendar: calendar, in: modelContext) }
+            }
+            .labelStyle(.iconOnly)
+            .font(.body.weight(.bold))
+            .foregroundStyle(.white)
+            .frame(width: 40, height: 40)
+            .background(habit.habitColor.color.gradient, in: .circle)
+            .contentShape(.circle)
+            .buttonStyle(.plain)
+            .opacity(isFuture ? 0.35 : 1)
+            .disabled(isFuture)
+            .help("Log a completion")
         }
-        .buttonStyle(.plain)
-        .disabled(isFuture)
-        .accessibilityLabel("Log \(habit.name)")
-        .accessibilityValue(goalDescription)
-        .help("Log a completion")
+        .sensoryFeedback(trigger: progress.count) { old, new in
+            new > old ? .increase : .decrease
+        }
     }
 
     private var taskButton: some View {
@@ -251,5 +280,6 @@ private struct Badge: View {
             .padding(.vertical, 2)
             .foregroundStyle(color)
             .background(color.opacity(0.15), in: .capsule)
+            .fixedSize()
     }
 }
